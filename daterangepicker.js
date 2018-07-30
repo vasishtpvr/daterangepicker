@@ -1249,7 +1249,7 @@
         },
 
         hoverDate: function(e) {
-
+            var me = this;
             //ignore mouse movements while an above-calendar text input has focus
             //if (this.container.find('input[name=daterangepicker_start]').is(":focus") || this.container.find('input[name=daterangepicker_end]').is(":focus"))
             //    return;
@@ -1264,9 +1264,11 @@
             var cal = $(e.target).parents('.calendar');
             var date = cal.hasClass('left') ? this.leftCalendar.calendar[row][col] : this.rightCalendar.calendar[row][col];
 
-            if (this.endDate && !this.container.find('input[name=daterangepicker_start]').is(":focus")) {
+            if (this.linkedCalendars && (this.endDate && !this.container.find('input[name=daterangepicker_start]').is(":focus")) ||
+                !this.linkedCalendars && cal.hasClass('left')) {
                 this.container.find('input[name=daterangepicker_start]').val(date.format(this.locale.format));
-            } else if (!this.endDate && !this.container.find('input[name=daterangepicker_end]').is(":focus")) {
+            } else if (this.linkedCalendars && (!this.endDate && !this.container.find('input[name=daterangepicker_end]').is(":focus")) ||
+                !this.linkedCalendars && cal.hasClass('right')) {
                 this.container.find('input[name=daterangepicker_end]').val(date.format(this.locale.format));
             }
 
@@ -1274,7 +1276,9 @@
             var leftCalendar = this.leftCalendar;
             var rightCalendar = this.rightCalendar;
             var startDate = this.startDate;
-            if (!this.endDate) {
+            var endDate = this.endDate;
+            if (this.linkedCalendars && !this.endDate ||
+            !this.linkedCalendars && (cal.hasClass('left') && date.isBefore(this.startDate) || cal.hasClass('right') && date.isAfter(this.endDate))) {
                 this.container.find('.calendar tbody td').each(function(index, el) {
 
                     //skip week numbers, only look at dates
@@ -1286,7 +1290,9 @@
                     var cal = $(el).parents('.calendar');
                     var dt = cal.hasClass('left') ? leftCalendar.calendar[row][col] : rightCalendar.calendar[row][col];
 
-                    if ((dt.isAfter(startDate) && dt.isBefore(date)) || dt.isSame(date, 'day')) {
+                    if (me.linkedCalendars && (dt.isAfter(startDate) && dt.isBefore(date)) ||
+                      !me.linkedCalendars && (dt.isAfter(date) && dt.isBefore(endDate) || dt.isBefore(date) && dt.isAfter(startDate)) ||
+                      dt.isSame(date, 'day')) {
                         $(el).addClass('in-range');
                     } else {
                         $(el).removeClass('in-range');
@@ -1316,27 +1322,30 @@
             // * if one of the inputs above the calendars was focused, cancel that manual input
             //
 
-            if (this.endDate || date.isBefore(this.startDate, 'day')) { //picking start
-                if (this.timePicker) {
-                    var hour = parseInt(this.container.find('.left .hourselect').val(), 10);
-                    if (!this.timePicker24Hour) {
-                        var ampm = this.container.find('.left .ampmselect').val();
-                        if (ampm === 'PM' && hour < 12)
-                            hour += 12;
-                        if (ampm === 'AM' && hour === 12)
-                            hour = 0;
+            if (this.linkedCalendars && (this.endDate || date.isBefore(this.startDate, 'day')) ||
+                !this.linkedCalendars && cal.hasClass('left')) { //picking start
+                    if (this.timePicker) {
+                        var hour = parseInt(this.container.find('.left .hourselect').val(), 10);
+                        if (!this.timePicker24Hour) {
+                            var ampm = this.container.find('.left .ampmselect').val();
+                            if (ampm === 'PM' && hour < 12)
+                                hour += 12;
+                            if (ampm === 'AM' && hour === 12)
+                                hour = 0;
+                        }
+                        var minute = parseInt(this.container.find('.left .minuteselect').val(), 10);
+                        var second = this.timePickerSeconds ? parseInt(this.container.find('.left .secondselect').val(), 10) : 0;
+                        date = date.clone().hour(hour).minute(minute).second(second);
                     }
-                    var minute = parseInt(this.container.find('.left .minuteselect').val(), 10);
-                    var second = this.timePickerSeconds ? parseInt(this.container.find('.left .secondselect').val(), 10) : 0;
-                    date = date.clone().hour(hour).minute(minute).second(second);
-                }
-                this.endDate = null;
-                this.setStartDate(date.clone());
+                    if (this.linkedCalendars) {
+                        this.endDate = null;
+                    }
+                    this.setStartDate(date.clone());
             } else if (!this.endDate && date.isBefore(this.startDate)) {
                 //special case: clicking the same date for start/end,
                 //but the time of the end date is before the start date
                 this.setEndDate(this.startDate.clone());
-            } else { // picking end
+            } else if (this.linkedCalendars || !this.linkedCalendars && cal.hasClass('right')){ // picking end
                 if (this.timePicker) {
                     var hour = parseInt(this.container.find('.right .hourselect').val(), 10);
                     if (!this.timePicker24Hour) {
