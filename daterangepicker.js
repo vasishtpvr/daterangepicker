@@ -720,7 +720,7 @@
             if (this.showDropdowns) {
                 var currentMonth = calendar[1][1].month();
                 var currentYear = calendar[1][1].year();
-                var maxYear = (maxDate && maxDate.year()) || (currentYear + 5);
+                var maxYear = (maxDate && maxDate.year()) || (currentYear + 50);
                 var minYear = (minDate && minDate.year()) || (currentYear - 50);
                 var inMinYear = currentYear == minYear;
                 var inMaxYear = currentYear == maxYear;
@@ -1147,6 +1147,7 @@
             $(document).off('.daterangepicker');
             $(window).off('.daterangepicker');
             this.container.hide();
+            this.chosenLabel = null;
             this.element.trigger('hide.daterangepicker', this);
             this.isShowing = false;
         },
@@ -1208,6 +1209,8 @@
             this.chosenLabel = label;
             if (label == this.locale.customRangeLabel) {
                 this.showCalendars();
+                this.container.find('.ranges li').removeClass('active');
+                this.chosenLabel = this.container.find('.ranges li:last').addClass('active').html();
             } else {
                 var dates = this.ranges[label];
                 this.startDate = dates[0];
